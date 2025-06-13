@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from enum import Enum
 from .types import ValType, RefType
 
+
 class Opcode(Enum):
     UNREACHABLE = 0x00
     NOP = 0x01
@@ -80,6 +81,7 @@ class Opcode(Enum):
     BR_ON_NULL = 0xD4
     BR_ON_NON_NULL = 0xD5
 
+
 class AtomicOpcode(Enum):
     MEMORY_ATOMIC_NOTIFY = 0xFE00
     MEMORY_ATOMIC_WAIT32 = 0xFE01
@@ -149,6 +151,7 @@ class AtomicOpcode(Enum):
     I64_ATOMIC_RMW16_CMPXCHG_U = 0xFE4D
     I64_ATOMIC_RMW32_CMPXCHG_U = 0xFE4E
 
+
 class GCOpcode(Enum):
     STRUCT_NEW = 0xFB00
     STRUCT_NEW_DEFAULT = 0xFB01
@@ -180,53 +183,65 @@ class GCOpcode(Enum):
     I31_GET_S = 0xFB1B
     I31_GET_U = 0xFB1C
 
+
 @dataclass
 class Instruction:
     opcode: Union[Opcode, AtomicOpcode, GCOpcode]
-    
+
+
 @dataclass
 class ConstInstruction(Instruction):
     value: Union[int, float]
+
 
 @dataclass
 class LocalInstruction(Instruction):
     local_idx: int
 
+
 @dataclass
 class GlobalInstruction(Instruction):
     global_idx: int
 
+
 @dataclass
 class CallInstruction(Instruction):
     func_idx: int
+
 
 @dataclass
 class CallIndirectInstruction(Instruction):
     type_idx: int
     table_idx: int = 0
 
+
 @dataclass
 class ReturnCallInstruction(Instruction):
     func_idx: int
+
 
 @dataclass
 class ReturnCallIndirectInstruction(Instruction):
     type_idx: int
     table_idx: int = 0
 
+
 @dataclass
 class BrInstruction(Instruction):
     label_idx: int
+
 
 @dataclass
 class BrTableInstruction(Instruction):
     label_indices: List[int]
     default_label: int
 
+
 @dataclass
 class BlockInstruction(Instruction):
     block_type: Union[ValType, int, None]
     instructions: List[Instruction]
+
 
 @dataclass
 class IfInstruction(Instruction):
@@ -234,11 +249,13 @@ class IfInstruction(Instruction):
     then_instructions: List[Instruction]
     else_instructions: Optional[List[Instruction]] = None
 
+
 @dataclass
 class MemoryInstruction(Instruction):
     align: int
     offset: int
     memory_idx: int = 0
+
 
 @dataclass
 class AtomicMemoryInstruction(Instruction):
@@ -246,52 +263,64 @@ class AtomicMemoryInstruction(Instruction):
     offset: int
     memory_idx: int = 0
 
+
 @dataclass
 class RefNullInstruction(Instruction):
     ref_type: RefType
+
 
 @dataclass
 class RefFuncInstruction(Instruction):
     func_idx: int
 
+
 @dataclass
 class StructNewInstruction(Instruction):
     type_idx: int
+
 
 @dataclass
 class StructGetInstruction(Instruction):
     type_idx: int
     field_idx: int
 
+
 @dataclass
 class StructSetInstruction(Instruction):
     type_idx: int
     field_idx: int
 
+
 @dataclass
 class ArrayNewInstruction(Instruction):
     type_idx: int
+
 
 @dataclass
 class ArrayGetInstruction(Instruction):
     type_idx: int
 
+
 @dataclass
 class ArraySetInstruction(Instruction):
     type_idx: int
+
 
 @dataclass
 class ArrayNewFixedInstruction(Instruction):
     type_idx: int
     size: int
 
+
 @dataclass
 class RefTestInstruction(Instruction):
     ref_type: RefType
 
+
 @dataclass
 class RefCastInstruction(Instruction):
     ref_type: RefType
+
 
 @dataclass
 class BrOnCastInstruction(Instruction):
