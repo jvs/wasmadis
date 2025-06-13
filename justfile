@@ -27,6 +27,9 @@ lint-fix:
 # Run both formatter and linter
 check: fmt lint
 
+# Run all checks (format, lint, typecheck)
+check-all: fmt lint typecheck
+
 # Install dependencies
 install:
     uv sync
@@ -61,9 +64,13 @@ info:
     @echo "Dependencies:"
     @uv tree
 
-# Run type checking (if mypy is added later)
+# Run type checking with mypy
 typecheck:
-    @echo "Type checking not configured yet. Consider adding mypy."
+    uv run mypy wasmai/
+
+# Run type checking on tests (more lenient)
+typecheck-tests:
+    uv run mypy tests/ --disable-error-code=assignment,operator
 
 # Generate WAT files from examples for inspection
 generate-wat:

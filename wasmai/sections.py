@@ -23,7 +23,9 @@ class SectionId(Enum):
 
 @dataclass
 class Section:
-    pass
+    def __post_init__(self):
+        # Subclasses should override this to set self.id
+        pass
 
 
 @dataclass

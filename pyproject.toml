@@ -33,15 +33,31 @@ docstring-code-format = true
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]  # Line too long (handled by formatter)
 
+[tool.ruff.lint.per-file-ignores]
+"example.py" = ["F403", "F405", "I001"]  # Allow star imports in examples
+"setup.py" = ["I001"]  # Allow import formatting in setup
+"wasmai/*.py" = ["F403", "F405", "I001", "F401", "E741"]  # Allow star imports and other style issues in main package
+"tests/*.py" = ["F401", "F811", "I001", "E722", "F841"]  # Allow unused imports, bare except, and formatting in tests
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
     "ruff>=0.11.13",
     "wasmtime>=25.0.0",
+    "mypy>=1.5.0",
 ]

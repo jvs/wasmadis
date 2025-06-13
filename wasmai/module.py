@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, TypeVar, Type, cast
 from .sections import *
+
+T = TypeVar('T', bound='Section')
 
 
 @dataclass
@@ -11,14 +13,14 @@ class Module:
     def add_section(self, section: Section):
         self.sections.append(section)
 
-    def get_section(self, section_type: type) -> Optional[Section]:
+    def get_section(self, section_type: Type[T]) -> Optional[T]:
         for section in self.sections:
             if isinstance(section, section_type):
-                return section
+                return cast(T, section)
         return None
 
-    def get_sections(self, section_type: type) -> List[Section]:
-        return [section for section in self.sections if isinstance(section, section_type)]
+    def get_sections(self, section_type: Type[T]) -> List[T]:
+        return [cast(T, section) for section in self.sections if isinstance(section, section_type)]
 
     def get_type_section(self) -> Optional[TypeSection]:
         return self.get_section(TypeSection)

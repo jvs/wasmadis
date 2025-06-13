@@ -361,7 +361,7 @@ def encode_section(section: Section) -> bytes:
     elif isinstance(section, DataCountSection):
         section_data = encode_uleb128(section.count)
 
-    return bytes([section.id.value]) + encode_uleb128(len(section_data)) + section_data
+    return bytes([section.id.value]) + encode_uleb128(len(section_data)) + section_data  # type: ignore[attr-defined]
 
 
 def encode_binary(module: Module) -> bytes:
