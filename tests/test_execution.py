@@ -10,8 +10,6 @@ from wasmai.instructions import (
     Opcode,
     CallInstruction,
     IfInstruction,
-    BlockInstruction,
-    BrInstruction,
     GlobalInstruction,
 )
 from wasmai.sections import (
@@ -22,10 +20,8 @@ from wasmai.sections import (
     FuncExportDesc,
     FunctionSection,
     GlobalExportDesc,
-    GlobalSection,
     Import,
     ImportSection,
-    MemExportDesc,
     MemImportDesc,
     TypeSection,
     Global,

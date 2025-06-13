@@ -2,15 +2,11 @@
 
 # Run all tests
 test:
-    uv run pytest tests/ -v
-
-# Run tests with coverage
-test-cov:
-    uv run pytest tests/ -v --cov=wasmai --cov-report=term-missing
+    uv run python -m pytest tests/ -v
 
 # Run a specific test file
 test-file file:
-    uv run pytest tests/{{file}} -v
+    uv run python -m pytest tests/{{file}} -v
 
 # Format code with ruff (single quotes)
 fmt:

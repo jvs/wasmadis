@@ -3,8 +3,6 @@ import wasmtime
 
 from wasmai import Module, encode_binary, encode_text
 from wasmai.instructions import (
-    AtomicMemoryInstruction,
-    AtomicOpcode,
     ConstInstruction,
     Instruction,
     LocalInstruction,

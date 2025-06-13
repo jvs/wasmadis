@@ -7,7 +7,6 @@ from wasmai.instructions import (
     Instruction,
     LocalInstruction,
     Opcode,
-    ReturnCallInstruction,
 )
 from wasmai.sections import (
     CodeSection,

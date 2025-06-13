@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List
 from enum import Enum
 from .types import *
 from .instructions import Instruction
@@ -23,9 +23,7 @@ class SectionId(Enum):
 
 @dataclass
 class Section:
-    def __post_init__(self):
-        # Subclasses should override this to set self.id
-        pass
+    pass
 
 
 @dataclass
