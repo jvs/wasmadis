@@ -432,3 +432,228 @@ def test_recursive_function_with_stack_effects():
     assert factorial(store, 5) == 120
     assert factorial(store, 4) == 24
     assert factorial(store, 6) == 720
+
+
+def test_atomic_memory_operations():
+    """Test atomic operations on shared memory to detect race conditions."""
+    module = Module()
+
+    # Type section - functions for atomic operations
+    increment_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # atomic_increment(addr) -> old_value
+    compare_exchange_type = FuncType(params=[ValType.I32, ValType.I32, ValType.I32], results=[ValType.I32])  # cas(addr, expected, new) -> old_value
+    load_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # atomic_load(addr) -> value
+
+    type_section = TypeSection(types=[increment_type, compare_exchange_type, load_type])
+    module.add_section(type_section)
+
+    # Import shared memory with threading enabled
+    memory_import = Import(
+        module='env',
+        name='memory',
+        desc=MemImportDesc(mem_type=MemType(limits=Limits(min=1, max=1, shared=True))),
+    )
+    import_section = ImportSection(imports=[memory_import])
+    module.add_section(import_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='atomic_increment', desc=FuncExportDesc(func_idx=0)),
+            Export(name='compare_exchange', desc=FuncExportDesc(func_idx=1)),
+            Export(name='atomic_load', desc=FuncExportDesc(func_idx=2)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    from wasmai.instructions import AtomicMemoryInstruction, AtomicOpcode
+
+    atomic_increment_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # addr
+            ConstInstruction(opcode=Opcode.I32_CONST, value=1),      # increment by 1
+            AtomicMemoryInstruction(opcode=AtomicOpcode.I32_ATOMIC_RMW_ADD, align=2, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    compare_exchange_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # addr
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),  # expected
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=2),  # new value
+            AtomicMemoryInstruction(opcode=AtomicOpcode.I32_ATOMIC_RMW_CMPXCHG, align=2, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    atomic_load_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # addr
+            AtomicMemoryInstruction(opcode=AtomicOpcode.I32_ATOMIC_LOAD, align=2, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[atomic_increment_func, compare_exchange_func, atomic_load_func])
+    module.add_section(code_section)
+
+    # Execute and test atomic operations
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+
+    # Create shared memory for import  
+    memory = wasmtime.Memory(store, wasmtime.MemoryType(wasmtime.Limits(1, 1), shared=True))
+    instance = wasmtime.Instance(store, wasmtime_module, [memory])
+
+    atomic_increment = instance.exports(store)['atomic_increment']
+    compare_exchange = instance.exports(store)['compare_exchange']
+    atomic_load = instance.exports(store)['atomic_load']
+
+    # Test atomic increment
+    addr = 0
+    initial_value = atomic_load(store, addr)
+    assert initial_value == 0
+
+    # Test multiple increments
+    old_value1 = atomic_increment(store, addr)
+    assert old_value1 == 0  # Should return old value (0)
+    current_value = atomic_load(store, addr)
+    assert current_value == 1
+
+    old_value2 = atomic_increment(store, addr)
+    assert old_value2 == 1  # Should return old value (1)
+    current_value = atomic_load(store, addr)
+    assert current_value == 2
+
+    # Test compare-and-swap
+    # Successful CAS
+    old_value = compare_exchange(store, addr, 2, 100)  # expect 2, set to 100
+    assert old_value == 2
+    current_value = atomic_load(store, addr)
+    assert current_value == 100
+
+    # Failed CAS
+    old_value = compare_exchange(store, addr, 50, 200)  # expect 50, but actual is 100
+    assert old_value == 100  # Should return actual value
+    current_value = atomic_load(store, addr)
+    assert current_value == 100  # Should remain unchanged
+
+
+
+def test_memory_bounds_and_overflow():
+    """Test memory operations near boundaries to detect overflow bugs."""
+    module = Module()
+
+    # Type section
+    write_type = FuncType(params=[ValType.I32, ValType.I32], results=[])  # write_at_offset(offset, value)
+    read_type = FuncType(params=[ValType.I32], results=[ValType.I32])     # read_at_offset(offset) -> value
+    copy_type = FuncType(params=[ValType.I32, ValType.I32, ValType.I32], results=[])  # copy_memory(src, dst, len)
+
+    type_section = TypeSection(types=[write_type, read_type, copy_type])
+    module.add_section(type_section)
+
+    # Import memory with specific size
+    memory_import = Import(
+        module='env',
+        name='memory',
+        desc=MemImportDesc(mem_type=MemType(limits=Limits(min=1, max=1))),  # Exactly 1 page (64KB)
+    )
+    import_section = ImportSection(imports=[memory_import])
+    module.add_section(import_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='write_at_offset', desc=FuncExportDesc(func_idx=0)),
+            Export(name='read_at_offset', desc=FuncExportDesc(func_idx=1)),
+            Export(name='copy_memory', desc=FuncExportDesc(func_idx=2)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    write_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # offset
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),  # value
+            MemoryInstruction(opcode=Opcode.I32_STORE, align=2, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    read_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # offset
+            MemoryInstruction(opcode=Opcode.I32_LOAD, align=2, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    copy_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),  # dst
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # src
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=2),  # len
+            MemoryInstruction(opcode=Opcode.MEMORY_COPY, align=0, offset=0),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[write_func, read_func, copy_func])
+    module.add_section(code_section)
+
+    # Execute and test boundary conditions
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+
+    # Create exactly 1 page of memory (64KB = 65536 bytes)
+    memory = wasmtime.Memory(store, wasmtime.MemoryType(wasmtime.Limits(1, 1)))
+    instance = wasmtime.Instance(store, wasmtime_module, [memory])
+
+    write_at_offset = instance.exports(store)['write_at_offset']
+    read_at_offset = instance.exports(store)['read_at_offset']
+
+    # Test normal operations
+    write_at_offset(store, 0, 42)
+    assert read_at_offset(store, 0) == 42
+
+    write_at_offset(store, 100, 100)
+    assert read_at_offset(store, 100) == 100
+
+    # Test near the end of memory (1 page = 65536 bytes, i32 takes 4 bytes)
+    # Last valid i32 address is 65532 (65536 - 4)
+    max_valid_addr = 65532
+    write_at_offset(store, max_valid_addr, 999)
+    assert read_at_offset(store, max_valid_addr) == 999
+
+    # Test out-of-bounds access - this should trap
+    try:
+        write_at_offset(store, 65533, 123)  # This would write past memory end
+        assert False, "Expected trap for out-of-bounds write"
+    except wasmtime.Trap:
+        pass  # Expected behavior
+
+    try:
+        read_at_offset(store, 65536)  # This is definitely out of bounds
+        assert False, "Expected trap for out-of-bounds read"
+    except wasmtime.Trap:
+        pass  # Expected behavior

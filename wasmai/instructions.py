@@ -55,6 +55,8 @@ class Opcode(Enum):
     I64_STORE32 = 0x3E
     MEMORY_SIZE = 0x3F
     MEMORY_GROW = 0x40
+    MEMORY_COPY = 0xFC0A
+    MEMORY_FILL = 0xFC0B
     I32_CONST = 0x41
     I64_CONST = 0x42
     F32_CONST = 0x43
@@ -74,6 +76,18 @@ class Opcode(Enum):
     I32_ADD = 0x6A
     I32_SUB = 0x6B
     I32_MUL = 0x6C
+    I32_DIV_S = 0x6D
+    I32_DIV_U = 0x6E
+    I32_REM_S = 0x6F
+    I32_REM_U = 0x70
+    I32_AND = 0x71
+    I32_OR = 0x72
+    I32_XOR = 0x73
+    I32_SHL = 0x74
+    I32_SHR_S = 0x75
+    I32_SHR_U = 0x76
+    I32_ROTL = 0x77
+    I32_ROTR = 0x78
     REF_NULL = 0xD0
     REF_IS_NULL = 0xD1
     REF_FUNC = 0xD2

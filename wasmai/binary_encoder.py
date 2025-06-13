@@ -137,7 +137,15 @@ def encode_instruction(instr: Instruction) -> bytes:
     result = b''
 
     if isinstance(instr.opcode, Opcode):
-        result += bytes([instr.opcode.value])
+        opcode_val = instr.opcode.value
+        if opcode_val > 0xFF:
+            # Multi-byte opcodes (bulk memory operations use 0xFC prefix)
+            if opcode_val & 0xFF00 == 0xFC00:
+                result += bytes([0xFC]) + encode_uleb128(opcode_val & 0xFF)
+            else:
+                result += bytes([instr.opcode.value])
+        else:
+            result += bytes([instr.opcode.value])
     elif isinstance(instr.opcode, AtomicOpcode):
         result += bytes([0xFE]) + encode_uleb128(instr.opcode.value & 0xFF)
     elif isinstance(instr.opcode, GCOpcode):
