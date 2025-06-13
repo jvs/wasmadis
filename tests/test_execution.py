@@ -439,8 +439,12 @@ def test_atomic_memory_operations():
     module = Module()
 
     # Type section - functions for atomic operations
-    increment_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # atomic_increment(addr) -> old_value
-    compare_exchange_type = FuncType(params=[ValType.I32, ValType.I32, ValType.I32], results=[ValType.I32])  # cas(addr, expected, new) -> old_value
+    increment_type = FuncType(
+        params=[ValType.I32], results=[ValType.I32]
+    )  # atomic_increment(addr) -> old_value
+    compare_exchange_type = FuncType(
+        params=[ValType.I32, ValType.I32, ValType.I32], results=[ValType.I32]
+    )  # cas(addr, expected, new) -> old_value
     load_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # atomic_load(addr) -> value
 
     type_section = TypeSection(types=[increment_type, compare_exchange_type, load_type])
@@ -476,7 +480,7 @@ def test_atomic_memory_operations():
         locals=[],
         body=[
             LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),  # addr
-            ConstInstruction(opcode=Opcode.I32_CONST, value=1),      # increment by 1
+            ConstInstruction(opcode=Opcode.I32_CONST, value=1),  # increment by 1
             AtomicMemoryInstruction(opcode=AtomicOpcode.I32_ATOMIC_RMW_ADD, align=2, offset=0),
             Instruction(opcode=Opcode.RETURN),
         ],
@@ -502,7 +506,9 @@ def test_atomic_memory_operations():
         ],
     )
 
-    code_section = CodeSection(funcs=[atomic_increment_func, compare_exchange_func, atomic_load_func])
+    code_section = CodeSection(
+        funcs=[atomic_increment_func, compare_exchange_func, atomic_load_func]
+    )
     module.add_section(code_section)
 
     # Execute and test atomic operations
@@ -511,7 +517,7 @@ def test_atomic_memory_operations():
     wasmtime_module = wasmtime.Module(engine, binary_data)
     store = wasmtime.Store(engine)
 
-    # Create shared memory for import  
+    # Create shared memory for import
     memory = wasmtime.Memory(store, wasmtime.MemoryType(wasmtime.Limits(1, 1), shared=True))
     instance = wasmtime.Instance(store, wasmtime_module, [memory])
 
@@ -549,15 +555,20 @@ def test_atomic_memory_operations():
     assert current_value == 100  # Should remain unchanged
 
 
-
 def test_memory_bounds_and_overflow():
     """Test memory operations near boundaries to detect overflow bugs."""
     module = Module()
 
     # Type section
-    write_type = FuncType(params=[ValType.I32, ValType.I32], results=[])  # write_at_offset(offset, value)
-    read_type = FuncType(params=[ValType.I32], results=[ValType.I32])     # read_at_offset(offset) -> value
-    copy_type = FuncType(params=[ValType.I32, ValType.I32, ValType.I32], results=[])  # copy_memory(src, dst, len)
+    write_type = FuncType(
+        params=[ValType.I32, ValType.I32], results=[]
+    )  # write_at_offset(offset, value)
+    read_type = FuncType(
+        params=[ValType.I32], results=[ValType.I32]
+    )  # read_at_offset(offset) -> value
+    copy_type = FuncType(
+        params=[ValType.I32, ValType.I32, ValType.I32], results=[]
+    )  # copy_memory(src, dst, len)
 
     type_section = TypeSection(types=[write_type, read_type, copy_type])
     module.add_section(type_section)
@@ -648,12 +659,12 @@ def test_memory_bounds_and_overflow():
     # Test out-of-bounds access - this should trap
     try:
         write_at_offset(store, 65533, 123)  # This would write past memory end
-        assert False, "Expected trap for out-of-bounds write"
+        assert False, 'Expected trap for out-of-bounds write'
     except wasmtime.Trap:
         pass  # Expected behavior
 
     try:
         read_at_offset(store, 65536)  # This is definitely out of bounds
-        assert False, "Expected trap for out-of-bounds read"
+        assert False, 'Expected trap for out-of-bounds read'
     except wasmtime.Trap:
         pass  # Expected behavior
