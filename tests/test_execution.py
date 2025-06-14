@@ -1,8 +1,8 @@
 import pytest
 import wasmtime
 
-from wasmai import Module, encode_binary
-from wasmai.instructions import (
+from wasmadis import Module, encode_binary
+from wasmadis.instructions import (
     ConstInstruction,
     Instruction,
     LocalInstruction,
@@ -12,7 +12,7 @@ from wasmai.instructions import (
     IfInstruction,
     GlobalInstruction,
 )
-from wasmai.sections import (
+from wasmadis.sections import (
     CodeSection,
     Export,
     ExportSection,
@@ -27,7 +27,7 @@ from wasmai.sections import (
     Global,
     Locals,
 )
-from wasmai.types import FuncType, ValType, GlobalType, MemType, Limits
+from wasmadis.types import FuncType, ValType, GlobalType, MemType, Limits
 
 
 def test_simple_counter_execution():
@@ -251,7 +251,7 @@ def test_global_state_modifications():
     module.add_section(function_section)
 
     # Global section - mutable counter (must come after function section)
-    from wasmai.sections import GlobalSection
+    from wasmadis.sections import GlobalSection
 
     counter_global = Global(
         global_type=GlobalType(val_type=ValType.I32, mutable=True),
@@ -470,7 +470,7 @@ def test_atomic_memory_operations():
     module.add_section(export_section)
 
     # Code section
-    from wasmai.instructions import AtomicMemoryInstruction, AtomicOpcode
+    from wasmadis.instructions import AtomicMemoryInstruction, AtomicOpcode
 
     atomic_increment_func = Func(
         locals=[],
@@ -668,7 +668,7 @@ def test_memory_bounds_and_overflow():
 
 def test_gc_struct_operations():
     """Test GC proposal struct operations - may not be supported by wasmtime yet."""
-    from wasmai.types import StructType, FieldType, ArrayType
+    from wasmadis.types import StructType, FieldType, ArrayType
 
     module = Module()
 
@@ -710,7 +710,7 @@ def test_gc_struct_operations():
     module.add_section(export_section)
 
     # Code section with GC operations
-    from wasmai.instructions import (
+    from wasmadis.instructions import (
         StructNewInstruction,
         StructGetInstruction,
         StructSetInstruction,
@@ -809,7 +809,7 @@ def test_gc_struct_operations():
 
 def test_gc_array_operations():
     """Test GC proposal array operations - may not be supported by wasmtime yet."""
-    from wasmai.types import StructType, FieldType, ArrayType
+    from wasmadis.types import StructType, FieldType, ArrayType
 
     module = Module()
 
@@ -851,7 +851,7 @@ def test_gc_array_operations():
     module.add_section(export_section)
 
     # Code section with GC array operations
-    from wasmai.instructions import (
+    from wasmadis.instructions import (
         ArrayNewInstruction,
         ArrayGetInstruction,
         ArraySetInstruction,
@@ -975,7 +975,7 @@ def test_gc_i31ref_operations():
     module.add_section(export_section)
 
     # Code section with i31ref operations
-    from wasmai.instructions import GCOpcode
+    from wasmadis.instructions import GCOpcode
 
     pack_func = Func(
         locals=[],
@@ -1048,3 +1048,828 @@ def test_gc_i31ref_operations():
     except Exception as e:
         print(f'⚠️  GC i31ref operations not yet supported: {e}')
         # This is expected - GC proposal may not be implemented in wasmtime yet
+
+
+def test_i32_bit_manipulation_instructions():
+    """Test i32 bit manipulation instructions: CLZ, CTZ, POPCNT."""
+    module = Module()
+
+    # Type section
+    clz_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # clz(x) -> count
+    ctz_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # ctz(x) -> count
+    popcnt_type = FuncType(params=[ValType.I32], results=[ValType.I32])  # popcnt(x) -> count
+
+    type_section = TypeSection(types=[clz_type, ctz_type, popcnt_type])
+    module.add_section(type_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='clz', desc=FuncExportDesc(func_idx=0)),
+            Export(name='ctz', desc=FuncExportDesc(func_idx=1)),
+            Export(name='popcnt', desc=FuncExportDesc(func_idx=2)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    clz_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_CLZ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    ctz_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_CTZ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    popcnt_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_POPCNT),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[clz_func, ctz_func, popcnt_func])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    clz = instance.exports(store)['clz']
+    ctz = instance.exports(store)['ctz']
+    popcnt = instance.exports(store)['popcnt']
+
+    # CLZ tests
+    assert clz(store, 0x80000000) == 0  # MSB set
+    assert clz(store, 0x40000000) == 1  # second MSB set
+    assert clz(store, 0x00000001) == 31  # LSB set
+    assert clz(store, 0x00000000) == 32  # all zeros
+    assert clz(store, 0xFFFFFFFF) == 0  # all ones
+
+    # CTZ tests
+    assert ctz(store, 0x00000001) == 0  # LSB set
+    assert ctz(store, 0x00000002) == 1  # second LSB set
+    assert ctz(store, 0x80000000) == 31  # MSB set
+    assert ctz(store, 0x00000000) == 32  # all zeros
+    assert ctz(store, 0xFFFFFFFF) == 0  # all ones
+
+    # POPCNT tests
+    assert popcnt(store, 0x00000000) == 0  # no bits set
+    assert popcnt(store, 0x00000001) == 1  # one bit set
+    assert popcnt(store, 0x00000003) == 2  # two bits set
+    assert popcnt(store, 0x0000000F) == 4  # four bits set
+    assert popcnt(store, 0xFFFFFFFF) == 32  # all bits set
+    assert popcnt(store, 0xAAAAAAAA) == 16  # alternating pattern
+
+
+def test_i64_bit_manipulation_instructions():
+    """Test i64 bit manipulation instructions: CLZ, CTZ, POPCNT."""
+    module = Module()
+
+    # Type section
+    clz_type = FuncType(params=[ValType.I64], results=[ValType.I64])
+    ctz_type = FuncType(params=[ValType.I64], results=[ValType.I64])
+    popcnt_type = FuncType(params=[ValType.I64], results=[ValType.I64])
+
+    type_section = TypeSection(types=[clz_type, ctz_type, popcnt_type])
+    module.add_section(type_section)
+
+    # Function section  
+    function_section = FunctionSection(type_indices=[0, 1, 2])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='clz64', desc=FuncExportDesc(func_idx=0)),
+            Export(name='ctz64', desc=FuncExportDesc(func_idx=1)),
+            Export(name='popcnt64', desc=FuncExportDesc(func_idx=2)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    clz_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_CLZ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    ctz_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_CTZ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    popcnt_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_POPCNT),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[clz_func, ctz_func, popcnt_func])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    clz64 = instance.exports(store)['clz64']
+    ctz64 = instance.exports(store)['ctz64']
+    popcnt64 = instance.exports(store)['popcnt64']
+
+    # CLZ tests
+    assert clz64(store, 0x8000000000000000) == 0  # MSB set
+    assert clz64(store, 0x4000000000000000) == 1  # second MSB set
+    assert clz64(store, 0x0000000000000001) == 63  # LSB set
+    assert clz64(store, 0x0000000000000000) == 64  # all zeros
+    assert clz64(store, 0xFFFFFFFFFFFFFFFF) == 0  # all ones
+
+    # CTZ tests  
+    assert ctz64(store, 0x0000000000000001) == 0  # LSB set
+    assert ctz64(store, 0x0000000000000002) == 1  # second LSB set
+    assert ctz64(store, 0x8000000000000000) == 63  # MSB set
+    assert ctz64(store, 0x0000000000000000) == 64  # all zeros
+    assert ctz64(store, 0xFFFFFFFFFFFFFFFF) == 0  # all ones
+
+    # POPCNT tests
+    assert popcnt64(store, 0x0000000000000000) == 0  # no bits set
+    assert popcnt64(store, 0x0000000000000001) == 1  # one bit set
+    assert popcnt64(store, 0x0000000000000003) == 2  # two bits set
+    assert popcnt64(store, 0x000000000000000F) == 4  # four bits set
+    assert popcnt64(store, 0xFFFFFFFFFFFFFFFF) == 64  # all bits set
+    assert popcnt64(store, 0xAAAAAAAAAAAAAAAA) == 32  # alternating pattern
+
+
+def test_i64_arithmetic_operations():
+    """Test i64 arithmetic operations."""
+    module = Module()
+
+    # Type section
+    binary_op_type = FuncType(params=[ValType.I64, ValType.I64], results=[ValType.I64])
+    type_section = TypeSection(types=[binary_op_type] * 7)  # ADD, SUB, MUL, DIV_S, DIV_U, REM_S, REM_U
+    module.add_section(type_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2, 3, 4, 5, 6])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='add64', desc=FuncExportDesc(func_idx=0)),
+            Export(name='sub64', desc=FuncExportDesc(func_idx=1)),
+            Export(name='mul64', desc=FuncExportDesc(func_idx=2)),
+            Export(name='div_s64', desc=FuncExportDesc(func_idx=3)),
+            Export(name='div_u64', desc=FuncExportDesc(func_idx=4)),
+            Export(name='rem_s64', desc=FuncExportDesc(func_idx=5)),
+            Export(name='rem_u64', desc=FuncExportDesc(func_idx=6)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    add_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_ADD),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    sub_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_SUB),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    mul_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_MUL),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    div_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_DIV_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    div_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_DIV_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    rem_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_REM_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    rem_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_REM_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[add_func, sub_func, mul_func, div_s_func, div_u_func, rem_s_func, rem_u_func])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    add64 = instance.exports(store)['add64']
+    sub64 = instance.exports(store)['sub64']
+    mul64 = instance.exports(store)['mul64']
+    div_s64 = instance.exports(store)['div_s64']
+    div_u64 = instance.exports(store)['div_u64']
+    rem_s64 = instance.exports(store)['rem_s64']
+    rem_u64 = instance.exports(store)['rem_u64']
+
+    # Test arithmetic operations
+    assert add64(store, 100, 50) == 150
+    assert add64(store, 0x7FFFFFFFFFFFFFFF, 1) == -9223372036854775808  # overflow to signed interpretation
+    
+    assert sub64(store, 100, 30) == 70
+    assert sub64(store, 50, 100) == -50
+    
+    assert mul64(store, 12, 13) == 156
+    assert mul64(store, 0x100000000, 2) == 0x200000000
+    
+    assert div_s64(store, 100, 10) == 10
+    assert div_s64(store, -100, 10) == -10
+    assert div_s64(store, -100, -10) == 10
+    
+    assert div_u64(store, 100, 10) == 10
+    assert div_u64(store, 0xFFFFFFFFFFFFFFFF, 2) == 0x7FFFFFFFFFFFFFFF  # unsigned division
+    
+    assert rem_s64(store, 100, 30) == 10
+    assert rem_s64(store, -100, 30) == -10
+    
+    assert rem_u64(store, 100, 30) == 10
+    assert rem_u64(store, 0xFFFFFFFFFFFFFFFF, 2) == 1
+
+
+def test_i64_comparison_operations():
+    """Test i64 comparison operations.""" 
+    module = Module()
+
+    # Type section
+    compare_type = FuncType(params=[ValType.I64, ValType.I64], results=[ValType.I32])
+    eqz_type = FuncType(params=[ValType.I64], results=[ValType.I32])
+    
+    type_section = TypeSection(types=[eqz_type, compare_type, compare_type, compare_type, compare_type, compare_type, compare_type])
+    module.add_section(type_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2, 3, 4, 5, 6])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='eqz64', desc=FuncExportDesc(func_idx=0)),
+            Export(name='eq64', desc=FuncExportDesc(func_idx=1)),
+            Export(name='ne64', desc=FuncExportDesc(func_idx=2)),
+            Export(name='lt_s64', desc=FuncExportDesc(func_idx=3)),
+            Export(name='lt_u64', desc=FuncExportDesc(func_idx=4)),
+            Export(name='gt_s64', desc=FuncExportDesc(func_idx=5)),
+            Export(name='gt_u64', desc=FuncExportDesc(func_idx=6)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    eqz_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_EQZ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    eq_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_EQ),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    ne_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_NE),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    lt_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_LT_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    lt_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_LT_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    gt_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_GT_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    gt_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.I64_GT_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[eqz_func, eq_func, ne_func, lt_s_func, lt_u_func, gt_s_func, gt_u_func])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    eqz64 = instance.exports(store)['eqz64']
+    eq64 = instance.exports(store)['eq64']
+    ne64 = instance.exports(store)['ne64']
+    lt_s64 = instance.exports(store)['lt_s64']
+    lt_u64 = instance.exports(store)['lt_u64']
+    gt_s64 = instance.exports(store)['gt_s64']
+    gt_u64 = instance.exports(store)['gt_u64']
+
+    # Test comparison operations
+    assert eqz64(store, 0) == 1
+    assert eqz64(store, 1) == 0
+    assert eqz64(store, -1) == 0
+
+    assert eq64(store, 42, 42) == 1
+    assert eq64(store, 42, 43) == 0
+
+    assert ne64(store, 42, 43) == 1
+    assert ne64(store, 42, 42) == 0
+
+    # Signed comparisons
+    assert lt_s64(store, 10, 20) == 1
+    assert lt_s64(store, 20, 10) == 0
+    assert lt_s64(store, -10, 10) == 1
+    assert lt_s64(store, 10, -10) == 0
+
+    assert gt_s64(store, 20, 10) == 1
+    assert gt_s64(store, 10, 20) == 0
+    assert gt_s64(store, 10, -10) == 1
+    assert gt_s64(store, -10, 10) == 0
+
+    # Unsigned comparisons
+    assert lt_u64(store, 10, 20) == 1
+    assert lt_u64(store, 20, 10) == 0
+    # Note: -1 as unsigned is 0xFFFFFFFFFFFFFFFF (largest)
+    assert lt_u64(store, 10, -1) == 1
+    assert lt_u64(store, -1, 10) == 0
+
+    assert gt_u64(store, 20, 10) == 1
+    assert gt_u64(store, 10, 20) == 0
+    assert gt_u64(store, -1, 10) == 1
+    assert gt_u64(store, 10, -1) == 0
+
+
+def test_f32_arithmetic_operations():
+    """Test f32 floating point arithmetic operations."""
+    module = Module()
+
+    # Type section
+    binary_f32_type = FuncType(params=[ValType.F32, ValType.F32], results=[ValType.F32])
+    unary_f32_type = FuncType(params=[ValType.F32], results=[ValType.F32])
+    
+    type_section = TypeSection(types=[
+        binary_f32_type,  # add
+        binary_f32_type,  # sub  
+        binary_f32_type,  # mul
+        binary_f32_type,  # div
+        unary_f32_type,   # abs
+        unary_f32_type,   # neg
+        unary_f32_type,   # sqrt
+        binary_f32_type,  # min
+        binary_f32_type,  # max
+    ])
+    module.add_section(type_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='add_f32', desc=FuncExportDesc(func_idx=0)),
+            Export(name='sub_f32', desc=FuncExportDesc(func_idx=1)),
+            Export(name='mul_f32', desc=FuncExportDesc(func_idx=2)),
+            Export(name='div_f32', desc=FuncExportDesc(func_idx=3)),
+            Export(name='abs_f32', desc=FuncExportDesc(func_idx=4)),
+            Export(name='neg_f32', desc=FuncExportDesc(func_idx=5)),
+            Export(name='sqrt_f32', desc=FuncExportDesc(func_idx=6)),
+            Export(name='min_f32', desc=FuncExportDesc(func_idx=7)),
+            Export(name='max_f32', desc=FuncExportDesc(func_idx=8)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    add_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_ADD),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    sub_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_SUB),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    mul_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_MUL),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    div_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_DIV),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    abs_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_ABS),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    neg_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_NEG),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    sqrt_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_SQRT),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    min_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_MIN),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    max_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=1),
+            Instruction(opcode=Opcode.F32_MAX),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[add_func, sub_func, mul_func, div_func, abs_func, neg_func, sqrt_func, min_func, max_func])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    add_f32 = instance.exports(store)['add_f32']
+    sub_f32 = instance.exports(store)['sub_f32']
+    mul_f32 = instance.exports(store)['mul_f32']
+    div_f32 = instance.exports(store)['div_f32']
+    abs_f32 = instance.exports(store)['abs_f32']
+    neg_f32 = instance.exports(store)['neg_f32']
+    sqrt_f32 = instance.exports(store)['sqrt_f32']
+    min_f32 = instance.exports(store)['min_f32']
+    max_f32 = instance.exports(store)['max_f32']
+
+    # Test arithmetic operations
+    assert abs(add_f32(store, 3.5, 2.5) - 6.0) < 0.001
+    assert abs(sub_f32(store, 10.0, 3.0) - 7.0) < 0.001
+    assert abs(mul_f32(store, 4.0, 2.5) - 10.0) < 0.001
+    assert abs(div_f32(store, 10.0, 2.0) - 5.0) < 0.001
+
+    # Test unary operations
+    assert abs(abs_f32(store, -5.0) - 5.0) < 0.001
+    assert abs(abs_f32(store, 5.0) - 5.0) < 0.001
+    assert abs(neg_f32(store, 5.0) - (-5.0)) < 0.001
+    assert abs(neg_f32(store, -5.0) - 5.0) < 0.001
+    assert abs(sqrt_f32(store, 9.0) - 3.0) < 0.001
+    assert abs(sqrt_f32(store, 16.0) - 4.0) < 0.001
+
+    # Test min/max
+    assert abs(min_f32(store, 3.0, 5.0) - 3.0) < 0.001
+    assert abs(min_f32(store, 5.0, 3.0) - 3.0) < 0.001
+    assert abs(max_f32(store, 3.0, 5.0) - 5.0) < 0.001
+    assert abs(max_f32(store, 5.0, 3.0) - 5.0) < 0.001
+
+
+def test_type_conversion_operations():
+    """Test type conversion and extension operations."""
+    module = Module()
+
+    # Type section - various conversion operations
+    i32_to_i64_type = FuncType(params=[ValType.I32], results=[ValType.I64])
+    i64_to_i32_type = FuncType(params=[ValType.I64], results=[ValType.I32])
+    i32_to_f32_type = FuncType(params=[ValType.I32], results=[ValType.F32])
+    f32_to_i32_type = FuncType(params=[ValType.F32], results=[ValType.I32])
+    f32_to_f64_type = FuncType(params=[ValType.F32], results=[ValType.F64])
+    f64_to_f32_type = FuncType(params=[ValType.F64], results=[ValType.F32])
+
+    type_section = TypeSection(types=[
+        i32_to_i64_type,  # i64.extend_i32_s
+        i32_to_i64_type,  # i64.extend_i32_u
+        i64_to_i32_type,  # i32.wrap_i64
+        i32_to_f32_type,  # f32.convert_i32_s
+        i32_to_f32_type,  # f32.convert_i32_u
+        f32_to_i32_type,  # i32.trunc_f32_s
+        f32_to_i32_type,  # i32.trunc_f32_u
+        f32_to_f64_type,  # f64.promote_f32
+        f64_to_f32_type,  # f32.demote_f64
+    ])
+    module.add_section(type_section)
+
+    # Function section
+    function_section = FunctionSection(type_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8])
+    module.add_section(function_section)
+
+    # Export section
+    export_section = ExportSection(
+        exports=[
+            Export(name='extend_i32_s', desc=FuncExportDesc(func_idx=0)),
+            Export(name='extend_i32_u', desc=FuncExportDesc(func_idx=1)),
+            Export(name='wrap_i64', desc=FuncExportDesc(func_idx=2)),
+            Export(name='convert_i32_s', desc=FuncExportDesc(func_idx=3)),
+            Export(name='convert_i32_u', desc=FuncExportDesc(func_idx=4)),
+            Export(name='trunc_f32_s', desc=FuncExportDesc(func_idx=5)),
+            Export(name='trunc_f32_u', desc=FuncExportDesc(func_idx=6)),
+            Export(name='promote_f32', desc=FuncExportDesc(func_idx=7)),
+            Export(name='demote_f64', desc=FuncExportDesc(func_idx=8)),
+        ]
+    )
+    module.add_section(export_section)
+
+    # Code section
+    extend_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_EXTEND_I32_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    extend_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I64_EXTEND_I32_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    wrap_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_WRAP_I64),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    convert_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_CONVERT_I32_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    convert_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_CONVERT_I32_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    trunc_s_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_TRUNC_F32_S),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    trunc_u_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.I32_TRUNC_F32_U),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    promote_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F64_PROMOTE_F32),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    demote_func = Func(
+        locals=[],
+        body=[
+            LocalInstruction(opcode=Opcode.LOCAL_GET, local_idx=0),
+            Instruction(opcode=Opcode.F32_DEMOTE_F64),
+            Instruction(opcode=Opcode.RETURN),
+        ],
+    )
+
+    code_section = CodeSection(funcs=[
+        extend_s_func, extend_u_func, wrap_func, convert_s_func, convert_u_func,
+        trunc_s_func, trunc_u_func, promote_func, demote_func
+    ])
+    module.add_section(code_section)
+
+    # Execute and test
+    binary_data = encode_binary(module)
+    engine = wasmtime.Engine()
+    wasmtime_module = wasmtime.Module(engine, binary_data)
+    store = wasmtime.Store(engine)
+    instance = wasmtime.Instance(store, wasmtime_module, [])
+
+    extend_i32_s = instance.exports(store)['extend_i32_s']
+    extend_i32_u = instance.exports(store)['extend_i32_u']
+    wrap_i64 = instance.exports(store)['wrap_i64']
+    convert_i32_s = instance.exports(store)['convert_i32_s']
+    convert_i32_u = instance.exports(store)['convert_i32_u']
+    trunc_f32_s = instance.exports(store)['trunc_f32_s']
+    trunc_f32_u = instance.exports(store)['trunc_f32_u']
+    promote_f32 = instance.exports(store)['promote_f32']
+    demote_f64 = instance.exports(store)['demote_f64']
+
+    # Test sign extension
+    assert extend_i32_s(store, 100) == 100
+    assert extend_i32_s(store, -100) == -100
+    
+    # Test zero extension  
+    assert extend_i32_u(store, 100) == 100
+    assert extend_i32_u(store, -1) == 0xFFFFFFFF  # unsigned interpretation
+
+    # Test wrapping
+    assert wrap_i64(store, 100) == 100
+    assert wrap_i64(store, 0x100000000) == 0  # wraps around
+    assert wrap_i64(store, 0x100000001) == 1
+
+    # Test conversions
+    assert abs(convert_i32_s(store, 42) - 42.0) < 0.001
+    assert abs(convert_i32_s(store, -42) - (-42.0)) < 0.001
+    assert abs(convert_i32_u(store, -1) - 4294967296.0) < 0.001  # 2^32 (unsigned -1 = 0xFFFFFFFF + 1)
+
+    # Test truncation
+    assert trunc_f32_s(store, 42.7) == 42
+    assert trunc_f32_s(store, -42.7) == -42
+    assert trunc_f32_u(store, 42.7) == 42
+
+    # Test promotion/demotion  
+    result = promote_f32(store, 3.14)
+    assert abs(result - 3.14) < 0.001
+    
+    result = demote_f64(store, 3.141592653589793)
+    assert abs(result - 3.1415927) < 0.001  # f32 precision

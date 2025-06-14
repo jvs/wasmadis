@@ -1,9 +1,9 @@
 import pytest
 import wasmtime
 
-from wasmai import Module, encode_binary, encode_text
-from wasmai.instructions import ConstInstruction, Instruction, Opcode
-from wasmai.sections import (
+from wasmadis import Module, encode_binary, encode_text
+from wasmadis.instructions import ConstInstruction, Instruction, Opcode
+from wasmadis.sections import (
     CodeSection,
     Export,
     ExportSection,
@@ -12,7 +12,7 @@ from wasmai.sections import (
     FunctionSection,
     TypeSection,
 )
-from wasmai.types import FuncType, ValType
+from wasmadis.types import FuncType, ValType
 
 
 def test_empty_module():

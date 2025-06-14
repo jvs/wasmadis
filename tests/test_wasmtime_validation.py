@@ -1,14 +1,14 @@
 import pytest
 import wasmtime
 
-from wasmai import Module, encode_binary, encode_text
-from wasmai.instructions import (
+from wasmadis import Module, encode_binary, encode_text
+from wasmadis.instructions import (
     ConstInstruction,
     Instruction,
     LocalInstruction,
     Opcode,
 )
-from wasmai.sections import (
+from wasmadis.sections import (
     CodeSection,
     Export,
     ExportSection,
@@ -17,7 +17,7 @@ from wasmai.sections import (
     FunctionSection,
     TypeSection,
 )
-from wasmai.types import FuncType, ValType
+from wasmadis.types import FuncType, ValType
 
 
 def test_simple_add_function_validation():
@@ -123,12 +123,12 @@ def test_memory_operations_validation():
     module.add_section(type_section)
 
     # Import memory (since we can't easily create a valid memory section)
-    from wasmai.sections import (
+    from wasmadis.sections import (
         Import,
         ImportSection,
         MemImportDesc,
     )
-    from wasmai.types import Limits, MemType
+    from wasmadis.types import Limits, MemType
 
     memory_import = Import(
         module='env',
@@ -149,7 +149,7 @@ def test_memory_operations_validation():
     module.add_section(export_section)
 
     # Code section - load i32 from memory
-    from wasmai.instructions import MemoryInstruction
+    from wasmadis.instructions import MemoryInstruction
 
     load_func = Func(
         locals=[],

@@ -1,12 +1,12 @@
 [project]
-name = "wasmai"
+name = "wasmadis"
 version = "0.1.0"
 description = "Python dataclasses for representing WASM modules with WASM 2.0, GC, threads, and tail call support"
 readme = "README.md"
 authors = [
     { name = "jvs", email = "vonseg@protonmail.com" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = []
 
 [project.optional-dependencies]
@@ -22,7 +22,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.format]
 quote-style = "single"
@@ -36,7 +36,7 @@ ignore = ["E501"]  # Line too long (handled by formatter)
 [tool.ruff.lint.per-file-ignores]
 "example.py" = ["F403", "F405", "I001"]  # Allow star imports in examples
 "setup.py" = ["I001"]  # Allow import formatting in setup
-"wasmai/*.py" = ["F403", "F405", "I001", "F401", "E741"]  # Allow star imports and other style issues in main package
+"wasmadis/*.py" = ["F403", "F405", "I001", "F401", "E741"]  # Allow star imports and other style issues in main package
 "tests/*.py" = ["F401", "F811", "I001", "E722", "F841"]  # Allow unused imports, bare except, and formatting in tests
 
 [tool.pytest.ini_options]
@@ -46,7 +46,7 @@ python_classes = "Test*"
 python_functions = "test_*"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -54,9 +54,38 @@ disallow_incomplete_defs = false
 check_untyped_defs = true
 disallow_untyped_decorators = false
 
+[tool.coverage.run]
+source = ["wasmadis"]
+omit = [
+    "tests/*",
+    "setup.py",
+    "example.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
+    "coverage>=7.0.0",
     "ruff>=0.11.13",
     "wasmtime>=25.0.0",
     "mypy>=1.5.0",

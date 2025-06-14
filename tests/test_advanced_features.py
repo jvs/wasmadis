@@ -1,14 +1,14 @@
 import pytest
 import wasmtime
 
-from wasmai import Module, encode_binary
-from wasmai.instructions import (
+from wasmadis import Module, encode_binary
+from wasmadis.instructions import (
     ConstInstruction,
     Instruction,
     LocalInstruction,
     Opcode,
 )
-from wasmai.sections import (
+from wasmadis.sections import (
     CodeSection,
     Export,
     ExportSection,
@@ -17,7 +17,7 @@ from wasmai.sections import (
     FunctionSection,
     TypeSection,
 )
-from wasmai.types import FuncType, ValType
+from wasmadis.types import FuncType, ValType
 
 
 def test_tail_call_module_structure():
@@ -100,7 +100,7 @@ def test_complex_control_flow():
     module.add_section(export_section)
 
     # Code section - absolute value function using if/else
-    from wasmai.instructions import IfInstruction
+    from wasmadis.instructions import IfInstruction
 
     abs_func = Func(
         locals=[],
@@ -162,7 +162,7 @@ def test_local_variables():
     module.add_section(export_section)
 
     # Code section - function with local variables
-    from wasmai.sections import Locals
+    from wasmadis.sections import Locals
 
     swap_add_func = Func(
         locals=[
@@ -218,7 +218,7 @@ def test_function_calls():
     module.add_section(export_section)
 
     # Code section
-    from wasmai.instructions import CallInstruction
+    from wasmadis.instructions import CallInstruction
 
     # Internal add function
     add_func = Func(

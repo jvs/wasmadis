@@ -1,4 +1,4 @@
-# wasmai
+# wasmadis
 
 Python dataclasses for representing WASM modules with WASM 2.0, GC, threads, and tail call support.
 
@@ -15,25 +15,25 @@ Python dataclasses for representing WASM modules with WASM 2.0, GC, threads, and
 ## Installation
 
 ```bash
-uv add wasmai
+uv add wasmadis
 ```
 
 For development:
 
 ```bash
 git clone <repo>
-cd wasmai
+cd wasmadis
 uv sync --dev
 ```
 
 ## Quick Start
 
 ```python
-from wasmai import Module, encode_binary, encode_text
-from wasmai.types import FuncType, ValType
-from wasmai.sections import TypeSection, FunctionSection, ExportSection, CodeSection
-from wasmai.sections import Export, FuncExportDesc, Func
-from wasmai.instructions import LocalInstruction, Instruction, Opcode
+from wasmadis import Module, encode_binary, encode_text
+from wasmadis.types import FuncType, ValType
+from wasmadis.sections import TypeSection, FunctionSection, ExportSection, CodeSection
+from wasmadis.sections import Export, FuncExportDesc, Func
+from wasmadis.instructions import LocalInstruction, Instruction, Opcode
 
 # Create a simple add function
 module = Module()
@@ -79,8 +79,8 @@ print(wat_text)
 ### GC Types
 
 ```python
-from wasmai.types import StructType, FieldType
-from wasmai.instructions import StructNewInstruction, GCOpcode
+from wasmadis.types import StructType, FieldType
+from wasmadis.instructions import StructNewInstruction, GCOpcode
 
 # Create a struct type
 person_struct = StructType(fields=[
@@ -95,8 +95,8 @@ struct_new = StructNewInstruction(opcode=GCOpcode.STRUCT_NEW, type_idx=0)
 ### Atomic Operations
 
 ```python
-from wasmai.instructions import AtomicMemoryInstruction, AtomicOpcode
-from wasmai.types import Limits, MemType
+from wasmadis.instructions import AtomicMemoryInstruction, AtomicOpcode
+from wasmadis.types import Limits, MemType
 
 # Shared memory
 shared_memory = Memory(mem_type=MemType(limits=Limits(min=1, max=1, shared=True)))
@@ -112,7 +112,7 @@ atomic_add = AtomicMemoryInstruction(
 ### Tail Calls
 
 ```python
-from wasmai.instructions import ReturnCallInstruction
+from wasmadis.instructions import ReturnCallInstruction
 
 # Tail call
 tail_call = ReturnCallInstruction(opcode=Opcode.RETURN_CALL, func_idx=1)
@@ -125,6 +125,15 @@ This project uses [just](https://github.com/casey/just) for convenient developme
 ```bash
 # Run all tests
 just test
+
+# Run tests with coverage analysis
+just test-cov
+
+# Show coverage report
+just coverage-report
+
+# Generate HTML coverage report
+just coverage-html
 
 # Format code with ruff (single quotes)
 just fmt
