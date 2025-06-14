@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+# ruff: noqa: F405
 """
 Demonstration of the simplified wasmadis API.
 All classes and functions are available directly from the main package.
 """
 
 # Everything you need in one import!
-from wasmadis import *
+from wasmadis import *  # noqa: F403,F405
 
 
 def main():

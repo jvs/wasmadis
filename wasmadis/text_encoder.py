@@ -1,4 +1,3 @@
-from typing import List
 from .module import Module
 from .sections import *
 from .types import *
@@ -432,7 +431,7 @@ def format_instruction(instr: Instruction, indent_level: int = 0) -> str:
     return result
 
 
-def format_expr(instructions: List[Instruction]) -> str:
+def format_expr(instructions: list[Instruction]) -> str:
     return '\n'.join(format_instruction(instr) for instr in instructions)
 
 

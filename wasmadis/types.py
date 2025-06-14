@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional, Union
 from enum import Enum
 
 
@@ -29,13 +29,13 @@ class RefType:
 
 @dataclass
 class FuncType:
-    params: List[ValType]
-    results: List[ValType]
+    params: list[ValType]
+    results: list[ValType]
 
 
 @dataclass
 class StructType:
-    fields: List['FieldType']
+    fields: list['FieldType']
 
 
 @dataclass

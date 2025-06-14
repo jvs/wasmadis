@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional, Union
 from enum import Enum
 from .types import ValType, RefType
 
@@ -343,21 +343,21 @@ class BrInstruction(Instruction):
 
 @dataclass
 class BrTableInstruction(Instruction):
-    label_indices: List[int]
+    label_indices: list[int]
     default_label: int
 
 
 @dataclass
 class BlockInstruction(Instruction):
     block_type: Union[ValType, int, None]
-    instructions: List[Instruction]
+    instructions: list[Instruction]
 
 
 @dataclass
 class IfInstruction(Instruction):
     block_type: Union[ValType, int, None]
-    then_instructions: List[Instruction]
-    else_instructions: Optional[List[Instruction]] = None
+    then_instructions: list[Instruction]
+    else_instructions: Optional[list[Instruction]] = None
 
 
 @dataclass

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 from enum import Enum
 from .types import *
 from .instructions import Instruction
@@ -37,7 +36,7 @@ class CustomSection(Section):
 
 @dataclass
 class TypeSection(Section):
-    types: List[CompositeType]
+    types: list[CompositeType]
 
     def __post_init__(self):
         self.id = SectionId.TYPE
@@ -77,7 +76,7 @@ class Import:
 
 @dataclass
 class ImportSection(Section):
-    imports: List[Import]
+    imports: list[Import]
 
     def __post_init__(self):
         self.id = SectionId.IMPORT
@@ -85,7 +84,7 @@ class ImportSection(Section):
 
 @dataclass
 class FunctionSection(Section):
-    type_indices: List[int]
+    type_indices: list[int]
 
     def __post_init__(self):
         self.id = SectionId.FUNCTION
@@ -98,7 +97,7 @@ class Table:
 
 @dataclass
 class TableSection(Section):
-    tables: List[Table]
+    tables: list[Table]
 
     def __post_init__(self):
         self.id = SectionId.TABLE
@@ -111,7 +110,7 @@ class Memory:
 
 @dataclass
 class MemorySection(Section):
-    memories: List[Memory]
+    memories: list[Memory]
 
     def __post_init__(self):
         self.id = SectionId.MEMORY
@@ -120,12 +119,12 @@ class MemorySection(Section):
 @dataclass
 class Global:
     global_type: GlobalType
-    init_expr: List[Instruction]
+    init_expr: list[Instruction]
 
 
 @dataclass
 class GlobalSection(Section):
-    globals: List[Global]
+    globals: list[Global]
 
     def __post_init__(self):
         self.id = SectionId.GLOBAL
@@ -164,7 +163,7 @@ class Export:
 
 @dataclass
 class ExportSection(Section):
-    exports: List[Export]
+    exports: list[Export]
 
     def __post_init__(self):
         self.id = SectionId.EXPORT
@@ -191,7 +190,7 @@ class PassiveElementMode(ElementMode):
 @dataclass
 class ActiveElementMode(ElementMode):
     table_idx: int
-    offset_expr: List[Instruction]
+    offset_expr: list[Instruction]
 
 
 @dataclass
@@ -202,13 +201,13 @@ class DeclarativeElementMode(ElementMode):
 @dataclass
 class Element:
     ref_type: RefType
-    init_exprs: List[List[Instruction]]
+    init_exprs: list[list[Instruction]]
     mode: ElementMode
 
 
 @dataclass
 class ElementSection(Section):
-    elements: List[Element]
+    elements: list[Element]
 
     def __post_init__(self):
         self.id = SectionId.ELEMENT
@@ -222,13 +221,13 @@ class Locals:
 
 @dataclass
 class Func:
-    locals: List[Locals]
-    body: List[Instruction]
+    locals: list[Locals]
+    body: list[Instruction]
 
 
 @dataclass
 class CodeSection(Section):
-    funcs: List[Func]
+    funcs: list[Func]
 
     def __post_init__(self):
         self.id = SectionId.CODE
@@ -247,7 +246,7 @@ class PassiveDataMode(DataMode):
 @dataclass
 class ActiveDataMode(DataMode):
     mem_idx: int
-    offset_expr: List[Instruction]
+    offset_expr: list[Instruction]
 
 
 @dataclass
@@ -258,7 +257,7 @@ class Data:
 
 @dataclass
 class DataSection(Section):
-    data: List[Data]
+    data: list[Data]
 
     def __post_init__(self):
         self.id = SectionId.DATA

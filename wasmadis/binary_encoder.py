@@ -1,5 +1,4 @@
 import struct
-from typing import List
 from .module import Module
 from .sections import *
 from .types import *
@@ -40,7 +39,7 @@ def encode_string(s: str) -> bytes:
     return encode_uleb128(len(encoded)) + encoded
 
 
-def encode_vector(items: List, encode_item) -> bytes:
+def encode_vector(items: list, encode_item) -> bytes:
     result = encode_uleb128(len(items))
     for item in items:
         result += encode_item(item)
@@ -239,7 +238,7 @@ def encode_instruction(instr: Instruction) -> bytes:
     return result
 
 
-def encode_expr(instructions: List[Instruction]) -> bytes:
+def encode_expr(instructions: list[Instruction]) -> bytes:
     result = b''
     for instr in instructions:
         result += encode_instruction(instr)
