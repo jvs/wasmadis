@@ -2,7 +2,14 @@ from .module import Module
 from .types import *
 from .instructions import *
 from .sections import *
-from .binary_encoder import encode_binary, encode_uleb128, encode_sleb128, encode_f32, encode_f64, encode_string
+from .binary_encoder import (
+    encode_binary,
+    encode_uleb128,
+    encode_sleb128,
+    encode_f32,
+    encode_f64,
+    encode_string,
+)
 from .text_encoder import encode_text
 
 __version__ = '0.1.0'
@@ -12,18 +19,15 @@ __all__ = [
     'Module',
     'encode_binary',
     'encode_text',
-    
     # Binary encoding utilities
     'encode_uleb128',
-    'encode_sleb128', 
+    'encode_sleb128',
     'encode_f32',
     'encode_f64',
     'encode_string',
-    
     # Value types and enums
     'ValType',
     'PackedType',
-    
     # Type system
     'RefType',
     'FuncType',
@@ -35,12 +39,10 @@ __all__ = [
     'TableType',
     'GlobalType',
     'CompositeType',
-    
     # Instruction opcodes
     'Opcode',
     'AtomicOpcode',
     'GCOpcode',
-    
     # Instruction classes
     'Instruction',
     'ConstInstruction',
@@ -68,7 +70,6 @@ __all__ = [
     'RefTestInstruction',
     'RefCastInstruction',
     'BrOnCastInstruction',
-    
     # Sections
     'SectionId',
     'Section',
@@ -85,7 +86,6 @@ __all__ = [
     'CodeSection',
     'DataSection',
     'DataCountSection',
-    
     # Import/Export descriptors
     'ImportDesc',
     'ExportDesc',
@@ -97,7 +97,6 @@ __all__ = [
     'TableExportDesc',
     'MemExportDesc',
     'GlobalExportDesc',
-    
     # Helper classes
     'Import',
     'Export',
@@ -108,7 +107,6 @@ __all__ = [
     'Func',
     'Locals',
     'Data',
-    
     # Element and data modes
     'ElementMode',
     'DataMode',

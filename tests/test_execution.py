@@ -1153,7 +1153,7 @@ def test_i64_bit_manipulation_instructions():
     type_section = TypeSection(types=[clz_type, ctz_type, popcnt_type])
     module.add_section(type_section)
 
-    # Function section  
+    # Function section
     function_section = FunctionSection(type_indices=[0, 1, 2])
     module.add_section(function_section)
 
@@ -1216,7 +1216,7 @@ def test_i64_bit_manipulation_instructions():
     assert clz64(store, 0x0000000000000000) == 64  # all zeros
     assert clz64(store, 0xFFFFFFFFFFFFFFFF) == 0  # all ones
 
-    # CTZ tests  
+    # CTZ tests
     assert ctz64(store, 0x0000000000000001) == 0  # LSB set
     assert ctz64(store, 0x0000000000000002) == 1  # second LSB set
     assert ctz64(store, 0x8000000000000000) == 63  # MSB set
@@ -1238,7 +1238,9 @@ def test_i64_arithmetic_operations():
 
     # Type section
     binary_op_type = FuncType(params=[ValType.I64, ValType.I64], results=[ValType.I64])
-    type_section = TypeSection(types=[binary_op_type] * 7)  # ADD, SUB, MUL, DIV_S, DIV_U, REM_S, REM_U
+    type_section = TypeSection(
+        types=[binary_op_type] * 7
+    )  # ADD, SUB, MUL, DIV_S, DIV_U, REM_S, REM_U
     module.add_section(type_section)
 
     # Function section
@@ -1330,7 +1332,9 @@ def test_i64_arithmetic_operations():
         ],
     )
 
-    code_section = CodeSection(funcs=[add_func, sub_func, mul_func, div_s_func, div_u_func, rem_s_func, rem_u_func])
+    code_section = CodeSection(
+        funcs=[add_func, sub_func, mul_func, div_s_func, div_u_func, rem_s_func, rem_u_func]
+    )
     module.add_section(code_section)
 
     # Execute and test
@@ -1350,37 +1354,49 @@ def test_i64_arithmetic_operations():
 
     # Test arithmetic operations
     assert add64(store, 100, 50) == 150
-    assert add64(store, 0x7FFFFFFFFFFFFFFF, 1) == -9223372036854775808  # overflow to signed interpretation
-    
+    assert (
+        add64(store, 0x7FFFFFFFFFFFFFFF, 1) == -9223372036854775808
+    )  # overflow to signed interpretation
+
     assert sub64(store, 100, 30) == 70
     assert sub64(store, 50, 100) == -50
-    
+
     assert mul64(store, 12, 13) == 156
     assert mul64(store, 0x100000000, 2) == 0x200000000
-    
+
     assert div_s64(store, 100, 10) == 10
     assert div_s64(store, -100, 10) == -10
     assert div_s64(store, -100, -10) == 10
-    
+
     assert div_u64(store, 100, 10) == 10
     assert div_u64(store, 0xFFFFFFFFFFFFFFFF, 2) == 0x7FFFFFFFFFFFFFFF  # unsigned division
-    
+
     assert rem_s64(store, 100, 30) == 10
     assert rem_s64(store, -100, 30) == -10
-    
+
     assert rem_u64(store, 100, 30) == 10
     assert rem_u64(store, 0xFFFFFFFFFFFFFFFF, 2) == 1
 
 
 def test_i64_comparison_operations():
-    """Test i64 comparison operations.""" 
+    """Test i64 comparison operations."""
     module = Module()
 
     # Type section
     compare_type = FuncType(params=[ValType.I64, ValType.I64], results=[ValType.I32])
     eqz_type = FuncType(params=[ValType.I64], results=[ValType.I32])
-    
-    type_section = TypeSection(types=[eqz_type, compare_type, compare_type, compare_type, compare_type, compare_type, compare_type])
+
+    type_section = TypeSection(
+        types=[
+            eqz_type,
+            compare_type,
+            compare_type,
+            compare_type,
+            compare_type,
+            compare_type,
+            compare_type,
+        ]
+    )
     module.add_section(type_section)
 
     # Function section
@@ -1471,7 +1487,9 @@ def test_i64_comparison_operations():
         ],
     )
 
-    code_section = CodeSection(funcs=[eqz_func, eq_func, ne_func, lt_s_func, lt_u_func, gt_s_func, gt_u_func])
+    code_section = CodeSection(
+        funcs=[eqz_func, eq_func, ne_func, lt_s_func, lt_u_func, gt_s_func, gt_u_func]
+    )
     module.add_section(code_section)
 
     # Execute and test
@@ -1531,18 +1549,20 @@ def test_f32_arithmetic_operations():
     # Type section
     binary_f32_type = FuncType(params=[ValType.F32, ValType.F32], results=[ValType.F32])
     unary_f32_type = FuncType(params=[ValType.F32], results=[ValType.F32])
-    
-    type_section = TypeSection(types=[
-        binary_f32_type,  # add
-        binary_f32_type,  # sub  
-        binary_f32_type,  # mul
-        binary_f32_type,  # div
-        unary_f32_type,   # abs
-        unary_f32_type,   # neg
-        unary_f32_type,   # sqrt
-        binary_f32_type,  # min
-        binary_f32_type,  # max
-    ])
+
+    type_section = TypeSection(
+        types=[
+            binary_f32_type,  # add
+            binary_f32_type,  # sub
+            binary_f32_type,  # mul
+            binary_f32_type,  # div
+            unary_f32_type,  # abs
+            unary_f32_type,  # neg
+            unary_f32_type,  # sqrt
+            binary_f32_type,  # min
+            binary_f32_type,  # max
+        ]
+    )
     module.add_section(type_section)
 
     # Function section
@@ -1653,7 +1673,19 @@ def test_f32_arithmetic_operations():
         ],
     )
 
-    code_section = CodeSection(funcs=[add_func, sub_func, mul_func, div_func, abs_func, neg_func, sqrt_func, min_func, max_func])
+    code_section = CodeSection(
+        funcs=[
+            add_func,
+            sub_func,
+            mul_func,
+            div_func,
+            abs_func,
+            neg_func,
+            sqrt_func,
+            min_func,
+            max_func,
+        ]
+    )
     module.add_section(code_section)
 
     # Execute and test
@@ -1706,17 +1738,19 @@ def test_type_conversion_operations():
     f32_to_f64_type = FuncType(params=[ValType.F32], results=[ValType.F64])
     f64_to_f32_type = FuncType(params=[ValType.F64], results=[ValType.F32])
 
-    type_section = TypeSection(types=[
-        i32_to_i64_type,  # i64.extend_i32_s
-        i32_to_i64_type,  # i64.extend_i32_u
-        i64_to_i32_type,  # i32.wrap_i64
-        i32_to_f32_type,  # f32.convert_i32_s
-        i32_to_f32_type,  # f32.convert_i32_u
-        f32_to_i32_type,  # i32.trunc_f32_s
-        f32_to_i32_type,  # i32.trunc_f32_u
-        f32_to_f64_type,  # f64.promote_f32
-        f64_to_f32_type,  # f32.demote_f64
-    ])
+    type_section = TypeSection(
+        types=[
+            i32_to_i64_type,  # i64.extend_i32_s
+            i32_to_i64_type,  # i64.extend_i32_u
+            i64_to_i32_type,  # i32.wrap_i64
+            i32_to_f32_type,  # f32.convert_i32_s
+            i32_to_f32_type,  # f32.convert_i32_u
+            f32_to_i32_type,  # i32.trunc_f32_s
+            f32_to_i32_type,  # i32.trunc_f32_u
+            f32_to_f64_type,  # f64.promote_f32
+            f64_to_f32_type,  # f32.demote_f64
+        ]
+    )
     module.add_section(type_section)
 
     # Function section
@@ -1821,10 +1855,19 @@ def test_type_conversion_operations():
         ],
     )
 
-    code_section = CodeSection(funcs=[
-        extend_s_func, extend_u_func, wrap_func, convert_s_func, convert_u_func,
-        trunc_s_func, trunc_u_func, promote_func, demote_func
-    ])
+    code_section = CodeSection(
+        funcs=[
+            extend_s_func,
+            extend_u_func,
+            wrap_func,
+            convert_s_func,
+            convert_u_func,
+            trunc_s_func,
+            trunc_u_func,
+            promote_func,
+            demote_func,
+        ]
+    )
     module.add_section(code_section)
 
     # Execute and test
@@ -1847,8 +1890,8 @@ def test_type_conversion_operations():
     # Test sign extension
     assert extend_i32_s(store, 100) == 100
     assert extend_i32_s(store, -100) == -100
-    
-    # Test zero extension  
+
+    # Test zero extension
     assert extend_i32_u(store, 100) == 100
     assert extend_i32_u(store, -1) == 0xFFFFFFFF  # unsigned interpretation
 
@@ -1860,16 +1903,18 @@ def test_type_conversion_operations():
     # Test conversions
     assert abs(convert_i32_s(store, 42) - 42.0) < 0.001
     assert abs(convert_i32_s(store, -42) - (-42.0)) < 0.001
-    assert abs(convert_i32_u(store, -1) - 4294967296.0) < 0.001  # 2^32 (unsigned -1 = 0xFFFFFFFF + 1)
+    assert (
+        abs(convert_i32_u(store, -1) - 4294967296.0) < 0.001
+    )  # 2^32 (unsigned -1 = 0xFFFFFFFF + 1)
 
     # Test truncation
     assert trunc_f32_s(store, 42.7) == 42
     assert trunc_f32_s(store, -42.7) == -42
     assert trunc_f32_u(store, 42.7) == 42
 
-    # Test promotion/demotion  
+    # Test promotion/demotion
     result = promote_f32(store, 3.14)
     assert abs(result - 3.14) < 0.001
-    
+
     result = demote_f64(store, 3.141592653589793)
     assert abs(result - 3.1415927) < 0.001  # f32 precision

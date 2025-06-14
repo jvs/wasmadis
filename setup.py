@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='wasmai',
+    name='wasmadis',
     version='0.1.0',
     description='Python dataclasses for representing WASM modules with WASM 2.0, GC, threads, and tail call support',
-    author='wasmai',
+    author='wasmadis',
     packages=find_packages(),
     python_requires='>=3.8',
     classifiers=[
