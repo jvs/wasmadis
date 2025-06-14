@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-from wasmai import *
-from wasmai.types import *
-from wasmai.instructions import *
-from wasmai.sections import *
+# Simple import - everything available from main package
+from wasmadis import *
 
 
 def create_simple_module():

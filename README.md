@@ -29,11 +29,14 @@ uv sync --dev
 ## Quick Start
 
 ```python
-from wasmadis import Module, encode_binary, encode_text
-from wasmadis.types import FuncType, ValType
-from wasmadis.sections import TypeSection, FunctionSection, ExportSection, CodeSection
-from wasmadis.sections import Export, FuncExportDesc, Func
-from wasmadis.instructions import LocalInstruction, Instruction, Opcode
+# Everything you need is available from the main package
+from wasmadis import (
+    Module, encode_binary, encode_text,
+    FuncType, ValType, 
+    TypeSection, FunctionSection, ExportSection, CodeSection,
+    Export, FuncExportDesc, Func,
+    LocalInstruction, Instruction, Opcode
+)
 
 # Create a simple add function
 module = Module()
@@ -79,8 +82,7 @@ print(wat_text)
 ### GC Types
 
 ```python
-from wasmadis.types import StructType, FieldType
-from wasmadis.instructions import StructNewInstruction, GCOpcode
+from wasmadis import StructType, FieldType, StructNewInstruction, GCOpcode, ValType
 
 # Create a struct type
 person_struct = StructType(fields=[
@@ -95,8 +97,7 @@ struct_new = StructNewInstruction(opcode=GCOpcode.STRUCT_NEW, type_idx=0)
 ### Atomic Operations
 
 ```python
-from wasmadis.instructions import AtomicMemoryInstruction, AtomicOpcode
-from wasmadis.types import Limits, MemType
+from wasmadis import AtomicMemoryInstruction, AtomicOpcode, Limits, MemType, Memory
 
 # Shared memory
 shared_memory = Memory(mem_type=MemType(limits=Limits(min=1, max=1, shared=True)))
@@ -112,7 +113,7 @@ atomic_add = AtomicMemoryInstruction(
 ### Tail Calls
 
 ```python
-from wasmadis.instructions import ReturnCallInstruction
+from wasmadis import ReturnCallInstruction, Opcode
 
 # Tail call
 tail_call = ReturnCallInstruction(opcode=Opcode.RETURN_CALL, func_idx=1)
