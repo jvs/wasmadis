@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Union
 from enum import Enum
 
 
@@ -24,7 +25,7 @@ class ValType(Enum):
 @dataclass
 class RefType:
     nullable: bool
-    heap_type: Union[ValType, int]
+    heap_type: ValType | int
 
 
 @dataclass
@@ -35,17 +36,17 @@ class FuncType:
 
 @dataclass
 class StructType:
-    fields: list['FieldType']
+    fields: list[FieldType]
 
 
 @dataclass
 class ArrayType:
-    element_type: 'FieldType'
+    element_type: FieldType
 
 
 @dataclass
 class FieldType:
-    storage_type: Union[ValType, 'PackedType']
+    storage_type: ValType | PackedType
     mutable: bool
 
 
@@ -57,7 +58,7 @@ class PackedType(Enum):
 @dataclass
 class Limits:
     min: int
-    max: Optional[int] = None
+    max: int | None = None
     shared: bool = False
 
 
@@ -78,4 +79,4 @@ class GlobalType:
     mutable: bool
 
 
-CompositeType = Union[FuncType, StructType, ArrayType]
+CompositeType = FuncType | StructType | ArrayType

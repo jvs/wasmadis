@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional, Union
 from enum import Enum
 from .types import ValType, RefType
 
@@ -296,12 +295,12 @@ class GCOpcode(Enum):
 
 @dataclass
 class Instruction:
-    opcode: Union[Opcode, AtomicOpcode, GCOpcode]
+    opcode: Opcode | AtomicOpcode | GCOpcode
 
 
 @dataclass
 class ConstInstruction(Instruction):
-    value: Union[int, float]
+    value: int | float
 
 
 @dataclass
@@ -349,15 +348,15 @@ class BrTableInstruction(Instruction):
 
 @dataclass
 class BlockInstruction(Instruction):
-    block_type: Union[ValType, int, None]
+    block_type: ValType | int | None
     instructions: list[Instruction]
 
 
 @dataclass
 class IfInstruction(Instruction):
-    block_type: Union[ValType, int, None]
+    block_type: ValType | int | None
     then_instructions: list[Instruction]
-    else_instructions: Optional[list[Instruction]] = None
+    else_instructions: list[Instruction] | None = None
 
 
 @dataclass
